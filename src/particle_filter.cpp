@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
+#include <cmath>
 
 #include "particle_filter.h"
 
@@ -17,7 +18,31 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
+	
+	// Initialize the number of particles if it hasn't been already. 
+	if (num_particles == 0) {
+		num_particles = 1000;
+	}
 
+	// Change vector size to hold number of particles.
+	particles.resize(num_particles);
+
+	// Generate particles using normal distribution
+	std::default_random_engine gen;
+	std::normal_distribution<double> x_gen (x, std[0]);
+	std::normal_distribution<double> y_gen (y, std[1]);
+	std::normal_distribution<double> theta_gen (theta, std[2]); 
+	for (int i=0; i < num_particles; i++) {
+		Particle p;
+		p.id = i;
+		p.x = x_gen(gen);
+		p.y = y_gen(gen);
+		p.theta = theta_gen(gen);
+		particles[i] = p;
+	}
+
+	// initialize weights to 1
+	weights = std::vector<double> (num_particles, 1.0);
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -25,7 +50,31 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
+	std::default_random_engine gen;
+	std::normal_distribution<double> x_noise (0, std_pos[0]);
+	std::normal_distribution<double> y_noise (0, std_pos[1]);
+	std::normal_distribution<double> theta_noise (0, std_pos[2]);
+	for (int i=0; i < num_particles; i++) {
 
+		Particle p = particles[i];
+		
+		// straight line model
+		if (std::fabs(yaw_rate) < 0.001) {
+			p.x = p.x + velocity * std::cos(p.theta) * delta_t;
+			p.y = p.y + velocity * std::sin(p.theta) * delta_t;
+		} 
+		// constant turn rate model
+		else {
+			p.x = p.x + (velocity/yaw_rate) * (std::sin(p.theta + yaw_rate * delta_t) - std::sin(p.theta));
+			p.y = p.y + (velocity/yaw_rate) * (-std::cos(p.theta + yaw_rate * delta_t) + std::cos(p.theta));
+			p.theta = p.theta + yaw_rate * delta_t;
+		}
+
+		// add noise
+		p.x += x_noise(gen);
+		p.y += y_noise(gen);
+		p.theta += theta_noise(gen);
+	}
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
