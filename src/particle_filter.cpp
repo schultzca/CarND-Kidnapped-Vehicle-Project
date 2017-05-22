@@ -10,7 +10,7 @@
 #include <iostream>
 #include <numeric>
 #include <cmath>
-#include "Eigen/Dense"
+#include "helper_functions.h"
 
 #include "particle_filter.h"
 
@@ -121,7 +121,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	// Sum of weights
 	double weights_sum = 0;
 	
-	for (int i=0; i < particles.size(); i++) {
+	for (int i=0; i < num_particles; i++) {
 
 		Particle p = particles[i];
 
@@ -171,17 +171,23 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		weights[i] = weight;
 		weights_sum += weight;
 	}
-
-	// Normalize weights
-	for (int i=0; i < particles.size(); i++) {
-		weights[i] = weights[i] / weights_sum;
-	}
 }
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+	std::default_random_engine gen;
+  	std::discrete_distribution<int> d(weights.begin(), weights.end());
+
+  	std::vector<Particle> resampled;
+  	resampled.reserve(num_particles);
+
+  	for (int i=0; i < num_particles; i++) {
+  		resampled[i] = particles[d(gen)];
+  	}
+
+  	particles = resampled;
 }
 
 void ParticleFilter::write(string filename) {
@@ -199,19 +205,15 @@ double ParticleFilter::euclidianDistance(double x1, double x2, double y1, double
 }
 
 double ParticleFilter::multivariateGaussian(LandmarkObs predicted, LandmarkObs observed, double sigma_landmark[2]) {
-	// Unpack coordiantes
 	double x = observed.x;
 	double y = observed.y;
-	double mu_x = predicted.x;
-	double mu_y = predicted.y;
+	double x_mn = predicted.x;
+	double y_mn = predicted.y;
 
-	// Unpack landmark variance values
-	double x_sig = sigma_landmark[0];
-	double y_sig = sigma_landmark[1];
+	double x_std = sigma_landmark[0];
+	double y_std = sigma_landmark[1];
 
-	// Bivariate normal distribution with zero correlation assumption
-	const double pi = 3.14159265359;
-	return (1 / (2 * pi * x_sig * y_sig)) * std::exp(-0.5 * (pow(x - mu_x, 2) / pow(x_sig, 2) + pow(y - mu_y, 2) / pow(y_sig, 2)));
+	return 1./(2 * PI * x_std * y_std) * std::exp(-0.5 * (pow(x - x_mn, 2)/pow(x_std, 2) + pow(y - y_mn, 2)/pow(y_std, 2)));
 }
 
 

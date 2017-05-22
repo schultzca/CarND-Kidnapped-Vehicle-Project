@@ -13,7 +13,8 @@
 #include <math.h>
 #include <vector>
 #include "map.h"
-#include "Eigen/Dense"
+
+const double PI = 3.14159265359;
 
 /*
  * Struct representing one position/control measurement.
