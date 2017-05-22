@@ -13,6 +13,7 @@
 #include <math.h>
 #include <vector>
 #include "map.h"
+#include "Eigen/Dense"
 
 /*
  * Struct representing one position/control measurement.

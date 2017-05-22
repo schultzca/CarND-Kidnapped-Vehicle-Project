@@ -9,7 +9,9 @@
 #ifndef PARTICLE_FILTER_H_
 #define PARTICLE_FILTER_H_
 
+
 #include "helper_functions.h"
+
 
 struct Particle {
 
@@ -79,8 +81,8 @@ public:
 	 * updateWeights Updates the weights for each particle based on the likelihood of the 
 	 *   observed measurements. 
 	 * @param sensor_range Range [m] of sensor
-	 * @param std_landmark[] Array of dimension 2 [standard deviation of range [m],
-	 *   standard deviation of bearing [rad]]
+	 * @param std_landmark[] Array of dimension 2 [standard deviation of x,
+	 *   standard deviation of y]
 	 * @param observations Vector of landmark observations
 	 * @param map Map class containing map landmarks
 	 */
@@ -105,6 +107,26 @@ public:
 	const bool initialized() const {
 		return is_initialized;
 	}
+
+	/**
+	 * Compute euclidian distance between two points.
+	 * @param x1 x coordinate of first point
+	 * @param x2 x coordinate of second point
+	 * @param y1 y coordinate of first point
+	 * @param y2 y coordinate of second point
+	 * @returns (double) euclidian distance
+	 */
+	static double euclidianDistance(double x1, double x2, double y1, double y2);
+
+	/**
+	 * Compute probability using multivariate gaussian.
+	 * @param predicted (LandmarkObs) predicted location of landmark
+	 * @param observed (LandmarkObs) observed location of landmark
+	 * @param sigma_landmark (double[]) variance in x and y of landmark
+	 * @returns probability given multivariate normal pdf
+	 */
+	static double multivariateGaussian(LandmarkObs predicted, LandmarkObs observed, double sigma_landmark[2]);
+
 };
 
 
