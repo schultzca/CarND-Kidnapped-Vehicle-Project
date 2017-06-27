@@ -45,7 +45,7 @@ public:
 
 	// Constructor
 	// @param M Number of particles
-	ParticleFilter() : num_particles(0), is_initialized(false) {}
+	ParticleFilter() : num_particles(100), is_initialized(false) {}
 
 	// Destructor
 	~ParticleFilter() {}
@@ -114,25 +114,6 @@ public:
 	const bool initialized() const {
 		return is_initialized;
 	}
-
-	/**
-	 * Compute euclidian distance between two points.
-	 * @param x1 x coordinate of first point
-	 * @param x2 x coordinate of second point
-	 * @param y1 y coordinate of first point
-	 * @param y2 y coordinate of second point
-	 * @returns (double) euclidian distance
-	 */
-	static double euclidianDistance(double x1, double x2, double y1, double y2);
-
-	/**
-	 * Compute probability using multivariate gaussian.
-	 * @param predicted (LandmarkObs) predicted location of landmark
-	 * @param observed (LandmarkObs) observed location of landmark
-	 * @param sigma_landmark (double[]) variance in x and y of landmark
-	 * @returns probability given multivariate normal pdf
-	 */
-	static double multivariateGaussian(LandmarkObs predicted, LandmarkObs observed, double sigma_landmark[2]);
 
 };
 
