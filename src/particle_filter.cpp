@@ -35,20 +35,19 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	std::normal_distribution<double> ydist(y, std[1]);
 	std::normal_distribution<double> tdist(theta, std[2]);
 
+	std::cout << "num_particles: " << num_particles << std::endl;
+
 	// generate particles
 	particles.resize(num_particles);
 	for (int i=0; i < num_particles; i++) {
 		
 		// create and initialize particle
-		Particle p;
+		Particle p = particles[i];
 		p.id = i;
 		p.x = xdist(xgen);
 		p.y = ydist(ygen);
 		p.theta = tdist(tgen);
 		p.weight = -1;
-
-		// add particle to particle vector
-		particles.push_back(p);
 	}
 
 	is_initialized = true;
@@ -59,7 +58,38 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
+	
+	// state specific random number generators
+	std::default_random_engine xgen;
+	std::default_random_engine ygen;
+	std::default_random_engine tgen;
 
+	// normal random variables for each state
+	std::normal_distribution<double> xnoise(0, std_pos[0]);
+	std::normal_distribution<double> ynoise(0, std_pos[1]);
+	std::normal_distribution<double> tnoise(0, std_pos[2]);
+
+	// update each particles position using velocity and yaw rate
+	for (int i=0; i < particles.size(); i++) {
+		
+		Particle p = particles[i];
+		
+		// straight line motion
+		if (std::fabs(yaw_rate) < 0.001) {
+			p.x = p.x + velocity * delta_t * std::cos(p.theta);
+			p.y = p.y + velocity * delta_t * std::sin(p.theta);
+		}
+		else {
+			p.x = p.x + (velocity/yaw_rate) * (std::sin(p.theta + yaw_rate * delta_t) - std::sin(p.theta));
+			p.y = p.y + (velocity/yaw_rate) * (std::cos(p.theta) - std::cos(p.theta + yaw_rate * delta_t));
+			p.theta = p.theta + yaw_rate * delta_t;
+		}
+
+		// add gaussian noise
+		p.x = p.x + xnoise(xgen);
+		p.y = p.y + ynoise(ygen);
+		p.theta = p.theta + tnoise(tgen);
+	}
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
@@ -67,7 +97,28 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
+	
+	// iterate through each prediction
+	for (int i=0; i < observations.size(); i++) {
+		
+		LandmarkObs obs = observations[i];
 
+		// iterate through each observations
+		double distance = 1000000;
+		for (int j=0; j < predicted.size(); j++) {
+
+			LandmarkObs pred = predicted[j];
+
+			// compute euclidian distance to prediction
+			double d = dist(pred.x, pred.y, obs.x, obs.y);
+			
+			// assign id to prediction if distance is minimum
+			if (d < distance) {
+				obs.id = pred.id;
+				distance = d;
+			}
+		}
+	}
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
@@ -82,13 +133,93 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+	
+	// iterate through particles
+	for (int i=0; i < particles.size(); i++) {
+
+		Particle p = particles[i];
+
+		// iterate through landmarks and filter landmarks out of sensor range
+		vector<LandmarkObs> landmarks;
+		for (int j=0; j < map_landmarks.landmark_list.size(); j++) {
+
+			int id = map_landmarks.landmark_list[j].id_i;
+			double x = map_landmarks.landmark_list[j].x_f;
+			double y = map_landmarks.landmark_list[j].y_f;
+
+			// store landmarks that are in sensor range
+			if (dist(p.x, p.y, x, y) < sensor_range) {
+				
+				LandmarkObs obs;
+				obs.id = id;
+				obs.x = x;
+				obs.y = y;
+
+				landmarks.push_back(obs);
+			}
+		}
+
+		// iterate through observations and transform to map coordinates
+		vector<LandmarkObs> observations_t;
+		for (int j=0; j < observations.size(); j++) {
+
+			// original observation in vehicle coordinates
+			LandmarkObs obs = observations[j];
+			
+			// transformed observation in map coordinates
+			LandmarkObs obs_t;
+			obs_t.id = obs.id;
+			obs_t.x = p.x + obs.x * std::cos(p.theta) - obs.y * std::sin(p.theta);
+			obs_t.y = p.y + obs.x * std::sin(p.theta) + obs.y * std::cos(p.theta);
+
+			// store transformed observation
+			observations_t.push_back(obs_t);
+		}
+
+		// associate observations with landmarks
+		dataAssociation(landmarks, observations_t);
+
+		// compute particle weight and assign association
+		p.weight = 1;
+		for (int j=0; j < observations_t.size(); j++) {
+			
+			// observation position and landmark id
+			int id = observations_t[j].id - 1;	// convert to vector index
+			double x = observations_t[j].x;
+			double y = observations_t[j].y;
+
+			// associated landmark position
+			double mx = map_landmarks.landmark_list[id].x_f;
+			double my = map_landmarks.landmark_list[id].y_f;
+
+			// landmark x standard deviation
+			double xs = std_landmark[0];
+			double xs2 = xs * xs;	//squared
+
+			// landmark y standard deviation
+			double ys = std_landmark[1];
+			double ys2 = ys * ys;	//squared
+
+			// x diff
+			double dx = x - mx;
+			double dx2 = dx * dx; // squared
+
+			// y diff
+			double dy = y - my;
+			double dy2 = dy * dy; // squared
+
+			double den = 2 * PI * xs * ys;
+			
+			// compute weight using multivariate gaussian
+			p.weight = p.weight * std::exp(-(dx2/(2*xs2) + dy2/(2*ys2)))/den;
+		}
+	}
 }
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
-
 }
 
 Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y)

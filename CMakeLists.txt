@@ -8,6 +8,7 @@ set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
 set(sources src/particle_filter.cpp src/main.cpp)
+set(tests src/particle_filter.cpp src/tests.cpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
@@ -22,6 +23,7 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
 add_executable(particle_filter ${sources})
+add_executable(test_runner ${tests})
 
 
 target_link_libraries(particle_filter z ssl uv uWS)
