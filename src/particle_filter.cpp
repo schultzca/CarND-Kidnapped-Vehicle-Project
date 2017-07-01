@@ -33,8 +33,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	normal_distribution<double> y_normal_distribution(y, std[1]);
 	normal_distribution<double> theta_normal_distribution(theta, std[2]);
 
-	cout << "num_particles: " << num_particles << endl;
-
 	// generate particles
 	particles.resize(num_particles);
 	for (int i=0; i < num_particles; i++) {
@@ -87,6 +85,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 		p.x = p.x + x_noise_normal_distribution(generator);
 		p.y = p.y + y_noise_normal_distribution(generator);
 		p.theta = p.theta + theta_noise_normal_distribution(generator);
+
+		// assign updated particle to vector
+		particles[i] = p;
 	}
 }
 
