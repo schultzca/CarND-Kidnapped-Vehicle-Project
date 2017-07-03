@@ -2,6 +2,7 @@
 #include <random>
 #include <math.h>
 #include "particle_filter.h"
+#include "helper_functions.h"
 
 using namespace std;
 
@@ -169,9 +170,104 @@ void ParticleFilter_prediction_zero_yaw_rate_y_only() {
 	}
 }
 
+void dist_computes_euclidean_distance() {
+
+	cout << "Test dist_computes_euclidean_distance" << endl;
+
+	bool pass = true;
+	if (dist(1, 1, 1, 1) > 0.0001) {
+		cout << "Distance between same point was nonzero." << endl;
+		pass = false;
+	}
+	if (fabs(dist(0, 0, 1, 1) - sqrt(2)) > 0.0001) {
+		cout << "Distance between two points is incorrect." << endl;
+		pass = false;
+	}
+
+	if (pass) {
+		cout << "\t Test Passed!" << endl;
+	}
+	else {
+		cout << "\t Test Failed!" << endl;
+	}
+}
+
+void ParticleFilter_dataAssociation_perfect_match() {
+
+	cout << "Test ParticleFilter_dataAssociation_perfect_match" << endl;
+
+	vector<LandmarkObs> predictions;
+	for (int i=0; i < 3; i++) {
+		LandmarkObs pred = {i, (double) i, 0};
+		predictions.push_back(pred);
+	}
+
+	vector<LandmarkObs> observations;
+	for (int i=0; i < 3; i++) {
+		LandmarkObs obs = {-1, (double) i, 0};
+		observations.push_back(obs);
+	}
+
+	ParticleFilter pf;
+	pf.dataAssociation(predictions, observations);
+
+	bool pass = true;
+	for (int i=0; i < 3; i++) {
+		if (predictions[i].id != observations[i].id) {
+			cout << "Wrong id has been assigned to observation" << endl;
+			pass = false;
+		}
+	}
+
+	if (pass) {
+		cout << "\t Test Passed!" << endl;
+	}
+	else {
+		cout << "\t Test Failed!" << endl;
+	}
+}
+
+void ParticleFilter_dataAssociation_many_to_one_match() {
+
+	cout << "Test ParticleFilter_dataAssociation_many_to_one_match" << endl;
+
+	vector<LandmarkObs> predictions;
+	for (int i=0; i < 3; i++) {
+		LandmarkObs pred = {i, (double) i, 0};
+		predictions.push_back(pred);
+	}
+
+	vector<LandmarkObs> observations;
+	for (int i=0; i < 3; i++) {
+		LandmarkObs obs = {-1, 0, 0};
+		observations.push_back(obs);
+	}
+
+	ParticleFilter pf;
+	pf.dataAssociation(predictions, observations);
+
+	bool pass = true;
+	for (int i=0; i < 3; i++) {
+		if (observations[i].id != 0) {
+			cout << "Wrong id has been assigned to observation" << endl;
+			pass = false;
+		}
+	}
+
+	if (pass) {
+		cout << "\t Test Passed!" << endl;
+	}
+	else {
+		cout << "\t Test Failed!" << endl;
+	}
+}
+
 int main() {
 	ParticleFilter_init();
 	ParticleFilter_prediction_zero_yaw_rate_x_only();
 	ParticleFilter_prediction_zero_yaw_rate_y_only();
+	dist_computes_euclidean_distance();
+	ParticleFilter_dataAssociation_perfect_match();
+	ParticleFilter_dataAssociation_many_to_one_match();
 	return 0;
 }
