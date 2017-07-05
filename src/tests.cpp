@@ -119,7 +119,7 @@ void ParticleFilter_prediction_zero_yaw_rate_y_only() {
 
 	double x = 1;
 	double y = 1;
-	double theta = PI/2;
+	double theta = M_PI/2;
 	double sig [3] = {0.0, 0.0, 0.0};
 
 	pf.init(x, y, theta, sig);

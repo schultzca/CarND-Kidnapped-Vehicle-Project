@@ -210,7 +210,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			double dy = y - my;
 			double dy2 = dy * dy; // squared
 
-			double den = 2 * PI * xs * ys;
+			double den = 2 * M_PI * xs * ys;
 			
 			// compute weight using multivariate gaussian
 			p.weight = p.weight * exp(-(dx2/(2*xs2) + dy2/(2*ys2)))/den;

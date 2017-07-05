@@ -14,8 +14,6 @@
 #include <vector>
 #include "map.h"
 
-const double PI = 3.14159265359;
-
 /*
  * Struct representing one position/control measurement.
  */
